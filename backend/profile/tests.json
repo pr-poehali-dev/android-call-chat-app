@@ -1,0 +1,35 @@
+{
+  "tests": [
+    {
+      "name": "Get user profile",
+      "method": "GET",
+      "path": "/?id=1",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "username": "string",
+        "full_name": "string",
+        "email": "string"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Update user profile",
+      "method": "PUT",
+      "path": "/",
+      "body": {
+        "id": 1,
+        "full_name": "Test User",
+        "email": "test@example.com",
+        "phone": "+7 (999) 999-99-99"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "message": "string",
+        "user": {
+          "full_name": "string"
+        }
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

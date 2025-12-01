@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -7,10 +7,52 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Icon from '@/components/ui/icon';
+import EditProfileDialog from '@/components/EditProfileDialog';
+
+interface UserProfile {
+  id: number;
+  username: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  bio?: string;
+  status?: string;
+  avatar_url?: string;
+}
 
 export default function Index() {
   const [activeTab, setActiveTab] = useState('chats');
   const [selectedChat, setSelectedChat] = useState<number | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile>({
+    id: 1,
+    username: 'username',
+    full_name: 'Ваше Имя',
+    email: 'user@example.com',
+    phone: '+7 (999) 123-45-67',
+    bio: 'Привет! Я использую ConnectApp',
+    status: 'online',
+  });
+
+  useEffect(() => {
+    fetchUserProfile();
+  }, []);
+
+  const fetchUserProfile = async () => {
+    try {
+      const response = await fetch('https://functions.poehali.dev/38ac0446-e092-4229-83a7-24d3cd6efe56?id=1');
+      if (response.ok) {
+        const data = await response.json();
+        setUserProfile(data);
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
+  };
+
+  const handleProfileUpdate = (updatedProfile: UserProfile) => {
+    setUserProfile(updatedProfile);
+  };
 
   const mockChats = [
     { id: 1, name: 'Анна Петрова', message: 'Привет! Как дела?', time: '14:32', unread: 3, online: true, avatar: '' },
@@ -251,52 +293,69 @@ export default function Index() {
               <div className="flex flex-col items-center text-center animate-scale-in">
                 <div className="relative mb-4">
                   <Avatar className="h-32 w-32 border-4 border-white shadow-xl">
-                    <AvatarImage src="" />
+                    <AvatarImage src={userProfile.avatar_url || ''} />
                     <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-4xl">
-                      ВИ
+                      {userProfile.full_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                     </AvatarFallback>
                   </Avatar>
                   <Button
                     size="icon"
                     className="absolute bottom-0 right-0 h-10 w-10 rounded-full shadow-lg bg-accent hover:bg-accent/90 text-white"
+                    onClick={() => setEditDialogOpen(true)}
                   >
-                    <Icon name="Camera" size={20} />
+                    <Icon name="Edit" size={20} />
                   </Button>
                 </div>
-                <h2 className="text-2xl font-bold mb-1">Ваше Имя</h2>
-                <p className="text-muted-foreground">В сети</p>
+                <h2 className="text-2xl font-bold mb-1">{userProfile.full_name}</h2>
+                <p className="text-muted-foreground">{userProfile.status === 'online' ? 'В сети' : 'Не в сети'}</p>
               </div>
 
               <Card className="p-4 space-y-3">
-                <div className="flex items-center gap-3 p-3 hover:bg-muted/50 rounded-lg cursor-pointer transition-colors">
+                <div className="flex items-center gap-3 p-3 hover:bg-muted/50 rounded-lg cursor-pointer transition-colors" onClick={() => setEditDialogOpen(true)}>
                   <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                     <Icon name="User" size={20} className="text-primary" />
                   </div>
                   <div className="flex-1">
                     <p className="text-sm text-muted-foreground">Имя пользователя</p>
-                    <p className="font-medium">@username</p>
+                    <p className="font-medium">@{userProfile.username}</p>
                   </div>
+                  <Icon name="ChevronRight" size={20} className="text-muted-foreground" />
                 </div>
 
-                <div className="flex items-center gap-3 p-3 hover:bg-muted/50 rounded-lg cursor-pointer transition-colors">
+                <div className="flex items-center gap-3 p-3 hover:bg-muted/50 rounded-lg cursor-pointer transition-colors" onClick={() => setEditDialogOpen(true)}>
                   <div className="h-10 w-10 rounded-full bg-secondary/10 flex items-center justify-center">
                     <Icon name="Phone" size={20} className="text-secondary" />
                   </div>
                   <div className="flex-1">
                     <p className="text-sm text-muted-foreground">Телефон</p>
-                    <p className="font-medium">+7 (999) 123-45-67</p>
+                    <p className="font-medium">{userProfile.phone}</p>
                   </div>
+                  <Icon name="ChevronRight" size={20} className="text-muted-foreground" />
                 </div>
 
-                <div className="flex items-center gap-3 p-3 hover:bg-muted/50 rounded-lg cursor-pointer transition-colors">
+                <div className="flex items-center gap-3 p-3 hover:bg-muted/50 rounded-lg cursor-pointer transition-colors" onClick={() => setEditDialogOpen(true)}>
                   <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center">
                     <Icon name="Mail" size={20} className="text-accent" />
                   </div>
                   <div className="flex-1">
                     <p className="text-sm text-muted-foreground">Email</p>
-                    <p className="font-medium">user@example.com</p>
+                    <p className="font-medium">{userProfile.email}</p>
                   </div>
+                  <Icon name="ChevronRight" size={20} className="text-muted-foreground" />
                 </div>
+
+                {userProfile.bio && (
+                  <div className="flex items-center gap-3 p-3 hover:bg-muted/50 rounded-lg cursor-pointer transition-colors" onClick={() => setEditDialogOpen(true)}>
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Icon name="FileText" size={20} className="text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-muted-foreground">О себе</p>
+                      <p className="font-medium">{userProfile.bio}</p>
+                    </div>
+                    <Icon name="ChevronRight" size={20} className="text-muted-foreground" />
+                  </div>
+                )}
               </Card>
 
               <Card className="p-4 space-y-3">
@@ -336,6 +395,13 @@ export default function Index() {
           </ScrollArea>
         </TabsContent>
       </Tabs>
+
+      <EditProfileDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        profile={userProfile}
+        onSave={handleProfileUpdate}
+      />
     </div>
   );
 }
