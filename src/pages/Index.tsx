@@ -8,6 +8,8 @@ import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Icon from '@/components/ui/icon';
 import EditProfileDialog from '@/components/EditProfileDialog';
+import ChatWindow from '@/components/ChatWindow';
+import VideoCallWindow from '@/components/VideoCallWindow';
 
 interface UserProfile {
   id: number;
@@ -20,10 +22,22 @@ interface UserProfile {
   avatar_url?: string;
 }
 
+interface Chat {
+  id: number;
+  name: string;
+  is_group: boolean;
+  last_message?: string;
+  last_message_time?: string;
+  unread_count?: number;
+  avatar_url?: string;
+}
+
 export default function Index() {
   const [activeTab, setActiveTab] = useState('chats');
-  const [selectedChat, setSelectedChat] = useState<number | null>(null);
+  const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [activeCall, setActiveCall] = useState<{type: 'audio' | 'video', userName: string, userAvatar?: string} | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile>({
     id: 1,
     username: 'username',
@@ -36,7 +50,27 @@ export default function Index() {
 
   useEffect(() => {
     fetchUserProfile();
+    fetchChats();
   }, []);
+
+  const fetchChats = async () => {
+    try {
+      const response = await fetch('https://functions.poehali.dev/f417f6a0-d66b-4378-a1c5-23b680124a78?action=list&user_id=1');
+      if (response.ok) {
+        const data = await response.json();
+        const uniqueChats = data.reduce((acc: Chat[], current: Chat) => {
+          const exists = acc.find(c => c.id === current.id);
+          if (!exists) {
+            acc.push(current);
+          }
+          return acc;
+        }, []);
+        setChats(uniqueChats);
+      }
+    } catch (error) {
+      console.error('Error fetching chats:', error);
+    }
+  };
 
   const fetchUserProfile = async () => {
     try {
@@ -54,13 +88,18 @@ export default function Index() {
     setUserProfile(updatedProfile);
   };
 
-  const mockChats = [
-    { id: 1, name: 'Анна Петрова', message: 'Привет! Как дела?', time: '14:32', unread: 3, online: true, avatar: '' },
-    { id: 2, name: 'Команда Проекта', message: 'Встреча в 15:00', time: '13:45', unread: 0, online: false, avatar: '', isGroup: true },
-    { id: 3, name: 'Максим Иванов', message: 'Отправил файлы', time: '12:20', unread: 1, online: true, avatar: '' },
-    { id: 4, name: 'Мария Сидорова', message: 'Спасибо за помощь!', time: 'Вчера', unread: 0, online: false, avatar: '' },
-    { id: 5, name: 'Александр', message: 'Созвонимся завтра?', time: 'Вчера', unread: 0, online: true, avatar: '' },
-  ];
+  const formatTime = (dateString?: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+    
+    if (diffHours < 24) {
+      return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    }
+    return 'Вчера';
+  };
 
   const mockCalls = [
     { id: 1, name: 'Анна Петрова', type: 'video', time: '14:15', duration: '12:34', incoming: true, avatar: '' },
@@ -127,36 +166,33 @@ export default function Index() {
         <TabsContent value="chats" className="flex-1 m-0 animate-fade-in">
           <ScrollArea className="h-full">
             <div className="divide-y">
-              {mockChats.map((chat, index) => (
+              {chats.map((chat, index) => (
                 <div
                   key={chat.id}
-                  onClick={() => setSelectedChat(chat.id)}
+                  onClick={() => setSelectedChat(chat)}
                   className="p-4 hover:bg-muted/50 cursor-pointer transition-colors active:bg-muted animate-slide-up"
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
                   <div className="flex items-center gap-3">
                     <div className="relative">
                       <Avatar className="h-14 w-14 border-2 border-white shadow-md">
-                        <AvatarImage src={chat.avatar} />
-                        <AvatarFallback className={chat.isGroup ? "bg-secondary text-white" : "bg-primary text-white"}>
-                          {chat.isGroup ? <Icon name="Users" size={20} className="text-white" /> : chat.name[0]}
+                        <AvatarImage src={chat.avatar_url} />
+                        <AvatarFallback className={chat.is_group ? "bg-secondary text-white" : "bg-primary text-white"}>
+                          {chat.is_group ? <Icon name="Users" size={20} className="text-white" /> : chat.name[0]}
                         </AvatarFallback>
                       </Avatar>
-                      {chat.online && (
-                        <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full" />
-                      )}
                     </div>
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
                         <h3 className="font-semibold text-base truncate">{chat.name}</h3>
-                        <span className="text-xs text-muted-foreground">{chat.time}</span>
+                        <span className="text-xs text-muted-foreground">{formatTime(chat.last_message_time)}</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <p className="text-sm text-muted-foreground truncate">{chat.message}</p>
-                        {chat.unread > 0 && (
+                        <p className="text-sm text-muted-foreground truncate">{chat.last_message || 'Нет сообщений'}</p>
+                        {chat.unread_count && chat.unread_count > 0 && (
                           <Badge className="ml-2 bg-accent hover:bg-accent text-white min-w-[20px] h-5 flex items-center justify-center rounded-full">
-                            {chat.unread}
+                            {chat.unread_count}
                           </Badge>
                         )}
                       </div>
@@ -402,6 +438,33 @@ export default function Index() {
         profile={userProfile}
         onSave={handleProfileUpdate}
       />
+
+      {selectedChat && (
+        <ChatWindow
+          chat={selectedChat}
+          onClose={() => {
+            setSelectedChat(null);
+            fetchChats();
+          }}
+          onCall={(type) => {
+            setActiveCall({
+              type,
+              userName: selectedChat.name,
+              userAvatar: selectedChat.avatar_url
+            });
+          }}
+          currentUserId={userProfile.id}
+        />
+      )}
+
+      {activeCall && (
+        <VideoCallWindow
+          userName={activeCall.userName}
+          userAvatar={activeCall.userAvatar}
+          callType={activeCall.type}
+          onEnd={() => setActiveCall(null)}
+        />
+      )}
     </div>
   );
 }
