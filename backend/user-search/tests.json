@@ -1,0 +1,12 @@
+{
+  "tests": [
+    {
+      "name": "Search user by username",
+      "method": "GET",
+      "path": "/?q=username",
+      "expectedStatus": 200,
+      "expectedBody": [],
+      "bodyMatcher": "partial"
+    }
+  ]
+}

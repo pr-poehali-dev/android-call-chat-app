@@ -1,0 +1,27 @@
+{
+  "tests": [
+    {
+      "name": "Get user contacts",
+      "method": "GET",
+      "path": "/?user_id=1",
+      "expectedStatus": 200,
+      "expectedBody": [],
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Add new contact",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "user_id": 1,
+        "contact_user_id": 1,
+        "contact_name": "Test Contact"
+      },
+      "expectedStatus": 201,
+      "expectedBody": {
+        "message": "string"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

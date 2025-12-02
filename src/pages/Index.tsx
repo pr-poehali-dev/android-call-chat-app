@@ -12,6 +12,7 @@ import ChatWindow from '@/components/ChatWindow';
 import VideoCallWindow from '@/components/VideoCallWindow';
 import CallModal from '@/components/CallModal';
 import ThemeToggle from '@/components/ThemeToggle';
+import AddContactDialog from '@/components/AddContactDialog';
 
 interface UserProfile {
   id: number;
@@ -38,7 +39,9 @@ export default function Index() {
   const [activeTab, setActiveTab] = useState('chats');
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [addContactDialogOpen, setAddContactDialogOpen] = useState(false);
   const [chats, setChats] = useState<Chat[]>([]);
+  const [contacts, setContacts] = useState<any[]>([]);
   const [activeCall, setActiveCall] = useState<{type: 'audio' | 'video', userName: string, userAvatar?: string} | null>(null);
   const [callModalOpen, setCallModalOpen] = useState(false);
   const [callConfig, setCallConfig] = useState<{contactName: string, isVideo: boolean, isOutgoing: boolean}>({contactName: '', isVideo: false, isOutgoing: true});
@@ -55,6 +58,7 @@ export default function Index() {
   useEffect(() => {
     fetchUserProfile();
     fetchChats();
+    fetchContacts();
   }, []);
 
   const fetchChats = async () => {
@@ -85,6 +89,18 @@ export default function Index() {
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
+    }
+  };
+
+  const fetchContacts = async () => {
+    try {
+      const response = await fetch(`https://functions.poehali.dev/26146939-005e-4eb7-af42-13d391ce1e74?user_id=${userProfile.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setContacts(data);
+      }
+    } catch (error) {
+      console.error('Error fetching contacts:', error);
     }
   };
 
@@ -298,57 +314,80 @@ export default function Index() {
         <TabsContent value="contacts" className="flex-1 m-0 animate-fade-in">
           <ScrollArea className="h-full">
             <div className="divide-y">
-              {mockContacts.map((contact, index) => (
-                <div
-                  key={contact.id}
-                  className="p-4 hover:bg-muted/50 cursor-pointer transition-colors animate-slide-up"
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <Avatar className="h-14 w-14 border-2 border-white shadow-md">
-                        <AvatarImage src={contact.avatar} />
-                        <AvatarFallback className="bg-primary text-white">{contact.name[0]}</AvatarFallback>
-                      </Avatar>
-                      {contact.online && (
-                        <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full" />
-                      )}
-                    </div>
-                    
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-base mb-1">{contact.name}</h3>
-                      <p className="text-sm text-muted-foreground">{contact.status}</p>
-                    </div>
-                    
-                    <div className="flex gap-2">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="text-secondary hover:bg-secondary/10 rounded-full"
-                        onClick={() => {
-                          setCallConfig({
-                            contactName: contact.name,
-                            isVideo: true,
-                            isOutgoing: true
-                          });
-                          setCallModalOpen(true);
-                        }}
-                      >
-                        <Icon name="Video" size={20} />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="text-primary hover:bg-primary/10 rounded-full"
-                      >
-                        <Icon name="MessageSquare" size={20} />
-                      </Button>
+              {contacts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Icon name="Users" size={48} className="text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground mb-4">У вас пока нет контактов</p>
+                  <Button onClick={() => setAddContactDialogOpen(true)}>
+                    <Icon name="Plus" size={20} className="mr-2" />
+                    Добавить контакт
+                  </Button>
+                </div>
+              ) : (
+                contacts.map((contact, index) => (
+                  <div
+                    key={contact.id}
+                    className="p-4 hover:bg-muted/50 cursor-pointer transition-colors animate-slide-up"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <Avatar className="h-14 w-14 border-2 border-white shadow-md">
+                          <AvatarImage src={contact.avatar_url} />
+                          <AvatarFallback className="bg-primary text-white">{contact.full_name[0]}</AvatarFallback>
+                        </Avatar>
+                        {contact.status === 'online' && (
+                          <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full" />
+                        )}
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-base mb-1 truncate">{contact.full_name}</h3>
+                        <p className="text-sm text-muted-foreground">@{contact.username}</p>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="text-secondary hover:bg-secondary/10 rounded-full"
+                          onClick={() => {
+                            setCallConfig({
+                              contactName: contact.full_name,
+                              isVideo: true,
+                              isOutgoing: true
+                            });
+                            setCallModalOpen(true);
+                          }}
+                        >
+                          <Icon name="Video" size={20} />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="text-primary hover:bg-primary/10 rounded-full"
+                        >
+                          <Icon name="MessageSquare" size={20} />
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </ScrollArea>
+          
+          {contacts.length > 0 && (
+            <div className="absolute bottom-6 right-6">
+              <Button
+                size="lg"
+                className="h-14 w-14 rounded-full shadow-2xl bg-primary hover:bg-primary/90 text-white"
+                onClick={() => setAddContactDialogOpen(true)}
+              >
+                <Icon name="Plus" size={24} />
+              </Button>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="profile" className="flex-1 m-0 animate-fade-in">
@@ -465,6 +504,13 @@ export default function Index() {
         onOpenChange={setEditDialogOpen}
         profile={userProfile}
         onSave={handleProfileUpdate}
+      />
+
+      <AddContactDialog
+        open={addContactDialogOpen}
+        onOpenChange={setAddContactDialogOpen}
+        currentUserId={userProfile.id}
+        onContactAdded={fetchContacts}
       />
 
       {selectedChat && (
