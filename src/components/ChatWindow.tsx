@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Icon from '@/components/ui/icon';
+import EmojiPicker from '@/components/EmojiPicker';
 
 interface Message {
   id: number;
@@ -190,7 +191,36 @@ export default function ChatWindow({ chat, onClose, onCall, currentUserId }: Cha
                         : 'bg-card text-foreground rounded-bl-sm'
                     }`}
                   >
-                    <p className="text-sm break-words">{message.content}</p>
+                    {message.content.startsWith('📎 ') ? (
+                      <div className="flex items-center gap-2">
+                        <Icon name="File" size={20} />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium break-words">
+                            {message.content.replace('📎 ', '').split('\n')[0]}
+                          </p>
+                          {message.content.includes('\n') && (
+                            <p className="text-xs mt-1 opacity-80">
+                              {message.content.split('\n')[1]}
+                            </p>
+                          )}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className={isOwn ? 'text-white hover:bg-white/20' : 'hover:bg-muted'}
+                          onClick={() => {
+                            const fileName = message.content.replace('📎 ', '').split('\n')[0];
+                            const link = document.createElement('a');
+                            link.download = fileName;
+                            link.click();
+                          }}
+                        >
+                          <Icon name="Download" size={16} />
+                        </Button>
+                      </div>
+                    ) : (
+                      <p className="text-sm break-words">{message.content}</p>
+                    )}
                   </div>
                   <span className="text-xs text-muted-foreground mt-1 px-2">
                     {new Date(message.created_at).toLocaleTimeString('ru-RU', {
@@ -227,9 +257,7 @@ export default function ChatWindow({ chat, onClose, onCall, currentUserId }: Cha
         )}
         
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="text-muted-foreground">
-            <Icon name="Smile" size={22} />
-          </Button>
+          <EmojiPicker onEmojiSelect={(emoji) => setNewMessage(prev => prev + emoji)} />
 
           <Button 
             variant="ghost" 

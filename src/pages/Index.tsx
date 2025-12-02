@@ -13,6 +13,7 @@ import VideoCallWindow from '@/components/VideoCallWindow';
 import CallModal from '@/components/CallModal';
 import ThemeToggle from '@/components/ThemeToggle';
 import AddContactDialog from '@/components/AddContactDialog';
+import IncomingCallDialog from '@/components/IncomingCallDialog';
 
 interface UserProfile {
   id: number;
@@ -45,6 +46,7 @@ export default function Index() {
   const [activeCall, setActiveCall] = useState<{type: 'audio' | 'video', userName: string, userAvatar?: string} | null>(null);
   const [callModalOpen, setCallModalOpen] = useState(false);
   const [callConfig, setCallConfig] = useState<{contactName: string, isVideo: boolean, isOutgoing: boolean}>({contactName: '', isVideo: false, isOutgoing: true});
+  const [incomingCall, setIncomingCall] = useState<{callerName: string, callerAvatar?: string, isVideo: boolean} | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile>({
     id: 1,
     username: 'username',
@@ -59,6 +61,19 @@ export default function Index() {
     fetchUserProfile();
     fetchChats();
     fetchContacts();
+    
+    // Демо входящего звонка через 10 секунд после загрузки
+    const demoCallTimeout = setTimeout(() => {
+      if (!incomingCall && !activeCall) {
+        setIncomingCall({
+          callerName: 'Демо Контакт',
+          callerAvatar: '',
+          isVideo: true
+        });
+      }
+    }, 10000);
+    
+    return () => clearTimeout(demoCallTimeout);
   }, []);
 
   const fetchChats = async () => {
@@ -547,6 +562,26 @@ export default function Index() {
         isVideo={callConfig.isVideo}
         isOutgoing={callConfig.isOutgoing}
       />
+
+      {incomingCall && (
+        <IncomingCallDialog
+          open={!!incomingCall}
+          callerName={incomingCall.callerName}
+          callerAvatar={incomingCall.callerAvatar}
+          isVideo={incomingCall.isVideo}
+          onAccept={() => {
+            setActiveCall({
+              type: incomingCall.isVideo ? 'video' : 'audio',
+              userName: incomingCall.callerName,
+              userAvatar: incomingCall.callerAvatar
+            });
+            setIncomingCall(null);
+          }}
+          onDecline={() => {
+            setIncomingCall(null);
+          }}
+        />
+      )}
     </div>
   );
 }
