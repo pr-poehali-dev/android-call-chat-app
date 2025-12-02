@@ -1,0 +1,30 @@
+{
+  "tests": [
+    {
+      "name": "Join room successfully",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "type": "join",
+        "from": "user1",
+        "to": "",
+        "roomId": "room123"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Poll messages for user",
+      "method": "GET",
+      "path": "/?userId=user1",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "messages": []
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

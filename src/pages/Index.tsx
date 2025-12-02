@@ -10,6 +10,8 @@ import Icon from '@/components/ui/icon';
 import EditProfileDialog from '@/components/EditProfileDialog';
 import ChatWindow from '@/components/ChatWindow';
 import VideoCallWindow from '@/components/VideoCallWindow';
+import CallModal from '@/components/CallModal';
+import ThemeToggle from '@/components/ThemeToggle';
 
 interface UserProfile {
   id: number;
@@ -38,6 +40,8 @@ export default function Index() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeCall, setActiveCall] = useState<{type: 'audio' | 'video', userName: string, userAvatar?: string} | null>(null);
+  const [callModalOpen, setCallModalOpen] = useState(false);
+  const [callConfig, setCallConfig] = useState<{contactName: string, isVideo: boolean, isOutgoing: boolean}>({contactName: '', isVideo: false, isOutgoing: true});
   const [userProfile, setUserProfile] = useState<UserProfile>({
     id: 1,
     username: 'username',
@@ -120,10 +124,20 @@ export default function Index() {
     <div className="h-screen bg-background flex flex-col max-w-md mx-auto shadow-2xl">
       <div className="bg-gradient-to-r from-primary to-secondary p-4 text-white shadow-lg">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold">СпецСвязь</h1>
-          <Button variant="ghost" size="icon" className="text-white hover:bg-white/20">
-            <Icon name="Settings" size={24} />
-          </Button>
+          <div className="flex items-center gap-3">
+            <img 
+              src="https://cdn.poehali.dev/projects/795edbcb-f9ba-4b65-a66c-842c8382c6cd/files/ac0fda71-1084-406a-9465-7876ace8e0df.jpg" 
+              alt="СпецСвязь"
+              className="h-10 w-10 object-contain"
+            />
+            <h1 className="text-2xl font-bold">СпецСвязь</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button variant="ghost" size="icon" className="text-white hover:bg-white/20">
+              <Icon name="Settings" size={24} />
+            </Button>
+          </div>
         </div>
         
         <div className="relative">
@@ -249,6 +263,14 @@ export default function Index() {
                       size="icon"
                       variant="ghost"
                       className="text-primary hover:bg-primary/10 rounded-full"
+                      onClick={() => {
+                        setCallConfig({
+                          contactName: call.name,
+                          isVideo: call.type === 'video',
+                          isOutgoing: true
+                        });
+                        setCallModalOpen(true);
+                      }}
                     >
                       <Icon name={call.type === 'video' ? "Video" : "Phone"} size={20} />
                     </Button>
@@ -305,6 +327,14 @@ export default function Index() {
                         size="icon"
                         variant="ghost"
                         className="text-secondary hover:bg-secondary/10 rounded-full"
+                        onClick={() => {
+                          setCallConfig({
+                            contactName: contact.name,
+                            isVideo: true,
+                            isOutgoing: true
+                          });
+                          setCallModalOpen(true);
+                        }}
                       >
                         <Icon name="Video" size={20} />
                       </Button>
@@ -465,6 +495,14 @@ export default function Index() {
           onEnd={() => setActiveCall(null)}
         />
       )}
+
+      <CallModal
+        isOpen={callModalOpen}
+        onClose={() => setCallModalOpen(false)}
+        contactName={callConfig.contactName}
+        isVideo={callConfig.isVideo}
+        isOutgoing={callConfig.isOutgoing}
+      />
     </div>
   );
 }

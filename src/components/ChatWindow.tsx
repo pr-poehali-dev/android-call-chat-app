@@ -33,6 +33,8 @@ export default function ChatWindow({ chat, onClose, onCall, currentUserId }: Cha
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -64,10 +66,23 @@ export default function ChatWindow({ chat, onClose, onCall, currentUserId }: Cha
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || loading) return;
+    if ((!newMessage.trim() && !selectedFile) || loading) return;
 
     setLoading(true);
     try {
+      let messageContent = newMessage;
+      
+      if (selectedFile) {
+        const reader = new FileReader();
+        const base64Promise = new Promise<string>((resolve) => {
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(selectedFile);
+        });
+        const base64 = await base64Promise;
+        
+        messageContent = `📎 ${selectedFile.name}${newMessage ? '\n' + newMessage : ''}`;
+      }
+
       const response = await fetch('https://functions.poehali.dev/f417f6a0-d66b-4378-a1c5-23b680124a78', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -75,12 +90,13 @@ export default function ChatWindow({ chat, onClose, onCall, currentUserId }: Cha
           action: 'send',
           chat_id: chat.id,
           sender_id: currentUserId,
-          content: newMessage,
+          content: messageContent,
         }),
       });
 
       if (response.ok) {
         setNewMessage('');
+        setSelectedFile(null);
         await fetchMessages();
       }
     } catch (error) {
@@ -190,27 +206,63 @@ export default function ChatWindow({ chat, onClose, onCall, currentUserId }: Cha
       </ScrollArea>
 
       <div className="p-4 bg-card border-t">
+        {selectedFile && (
+          <div className="mb-2 p-2 bg-muted rounded-lg flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Icon name="File" size={20} className="text-primary" />
+              <span className="text-sm truncate max-w-[200px]">{selectedFile.name}</span>
+              <span className="text-xs text-muted-foreground">
+                ({(selectedFile.size / 1024).toFixed(1)} KB)
+              </span>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => setSelectedFile(null)}
+            >
+              <Icon name="X" size={16} />
+            </Button>
+          </div>
+        )}
+        
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" className="text-muted-foreground">
             <Icon name="Smile" size={22} />
           </Button>
 
-          <Button variant="ghost" size="icon" className="text-muted-foreground">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-muted-foreground"
+            onClick={() => fileInputRef.current?.click()}
+          >
             <Icon name="Paperclip" size={22} />
           </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                setSelectedFile(file);
+              }
+            }}
+          />
 
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Введите сообщение..."
+            placeholder={selectedFile ? "Добавить подпись..." : "Введите сообщение..."}
             className="flex-1"
             disabled={loading}
           />
 
           <Button
             onClick={sendMessage}
-            disabled={!newMessage.trim() || loading}
+            disabled={(!newMessage.trim() && !selectedFile) || loading}
             size="icon"
             className="bg-primary hover:bg-primary/90 text-white rounded-full h-10 w-10"
           >
